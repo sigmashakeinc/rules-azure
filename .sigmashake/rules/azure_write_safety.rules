@@ -1,0 +1,40 @@
+# azure_write_safety.rules
+# Technology: azure | Capability: write
+
+rule azure-overly-permissive-rbac {
+  enabled true
+  priority 90
+  severity error
+  DENY write
+  IF path GLOB "**/*.tf" AND content LINE_REGEX "role_definition_name\\s*=\\s*[\"'](Owner|Contributor)[\"']"
+  MESSAGE "Assigning 'Owner' or 'Contributor' roles at a broad scope violates the Principle of Least Privilege. Use custom roles or tightly scoped built-in roles instead."
+}
+
+rule azure-open-nsg-rdp-ssh {
+  enabled true
+  priority 95
+  severity error
+  DENY write
+  IF path GLOB "**/*.tf" AND content LINE_REGEX "destination_port_range\\s*=\\s*[\"'](22|3389|\\*)[\"']" AND content LINE_REGEX "source_address_prefix\\s*=\\s*[\"'](\\*|0\\.0\\.0\\.0/0|Internet)[\"']"
+  MESSAGE "Network Security Groups (NSGs) allowing RDP (3389) or SSH (22) from the internet ('*' or '0.0.0.0/0') are highly vulnerable to brute-force attacks. Use Azure Bastion or restrict IP ranges."
+}
+
+rule azure-storage-public-access {
+  enabled true
+  priority 95
+  severity error
+  DENY write
+  IF path GLOB "**/*.tf" AND content LINE_REGEX "allow_nested_items_to_be_public\\s*=\\s*true"
+  OR path GLOB "**/*.tf" AND content LINE_REGEX "container_access_type\\s*=\\s*[\"'](blob|container)[\"']"
+  MESSAGE "Setting Blob Storage containers to 'blob' or 'container' access makes them public to the internet. This leads to data breaches. Set access to 'private'."
+}
+
+rule azure-missing-https {
+  enabled true
+  priority 85
+  severity warning
+  ASK write
+  IF path GLOB "**/*.tf" AND content LINE_REGEX "enable_https_traffic_only\\s*=\\s*false"
+  MESSAGE "Disabling 'enable_https_traffic_only' allows unencrypted HTTP traffic to your storage accounts, exposing data in transit."
+  PROMPT "Are you sure you want to disable HTTPS traffic only? This is a severe risk for data in transit."
+}
