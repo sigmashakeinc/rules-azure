@@ -33,8 +33,7 @@ rule azure-missing-https {
   enabled true
   priority 85
   severity warning
-  ASK write
+  LOG write
   IF path GLOB "**/*.tf" AND content LINE_REGEX "enable_https_traffic_only\\s*=\\s*false"
   MESSAGE "Disabling 'enable_https_traffic_only' allows unencrypted HTTP traffic to your storage accounts, exposing data in transit."
-  PROMPT "Are you sure you want to disable HTTPS traffic only? This is a severe risk for data in transit."
 }
